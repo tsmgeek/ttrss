@@ -144,7 +144,10 @@ class Pref_Users extends Handler_Protected {
 
 			print "<h1>".__('Subscribed feeds')."</h1>";
 
-			$result = $this->dbh->query("SELECT id,title,site_url FROM ttrss_feeds
+			$result = $this->dbh->query("SELECT id,title,site_url,
+				(SELECT count(int_id) FROM ttrss_user_entries WHERE owner_uid = '$id' AND feed_id=id) as feed_articles,
+				(SELECT count(int_id) FROM ttrss_user_entries WHERE owner_uid = '$id' AND feed_id=id AND unread=1) as feed_articles_unread
+				FROM ttrss_feeds
 				WHERE owner_uid = '$id' ORDER BY title");
 
 			print "<ul class=\"userFeedList\">";
@@ -159,7 +162,7 @@ class Pref_Users extends Handler_Protected {
 					$feed_icon = "<img class=\"tinyFeedIcon\" src=\"images/blank_icon.gif\">";
 				}
 
-				print "<li>$feed_icon&nbsp;<a href=\"".$line["site_url"]."\">".$line["title"]."</a></li>";
+				print "<li>$feed_icon&nbsp;<a href=\"".$line["site_url"]."\">".$line["title"]."</a> (Total:".$line["feed_articles"]." | Unread:".$line["feed_articles_unread"].")</li>";
 
 			}
 
