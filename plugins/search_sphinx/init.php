@@ -19,7 +19,7 @@ class Search_Sphinx extends Plugin {
 		require_once __DIR__ . "/sphinxapi.php";
 	}
 
-	function hook_search($search) {
+	function hook_search($search,$params=array()) {
 		$offset = 0;
 		$limit  = 500;
 
@@ -38,6 +38,8 @@ class Search_Sphinx extends Plugin {
 		$sphinxClient->SetLimits($offset, $limit, 1000);
 		$sphinxClient->SetArrayResult(false);
 		$sphinxClient->SetFilter('owner_uid', array($_SESSION['uid']));
+		if(isset($params['feed']) && (is_array($params['feed']) || (is_numeric($params['feed']) && $params['feed']>0)))
+	                $sphinxClient->SetFilter('feed_id', (is_array($params['feed'])?$params['feed']:array($params['feed'])));
 
 		$result = $sphinxClient->Query($search, SPHINX_INDEX);
 

@@ -1,0 +1,96 @@
+# Add cron entries as follows
+0   0    *   *   *   /usr/bin/indexer --rotate ttrss >/dev/null 2>&0
+0  */2   *   *   *   /usr/bin/indexer --rotate ttrss_delta >/dev/null 2>&0
+
+# Sphinx config
+source ttrss
+{
+        type                    = mysql # this is a MARIADB/MYSQL database
+        sql_host                = database # this is your hostname, typically localhost
+        sql_user                = ttrss # this is the ttrss_user name you defined
+        sql_pass                = ttrss # this is the ttrss_user password you defined
+        sql_db                  = ttrss # this is the name of the ttrss MARIADB/MYSQL database
+        sql_port                = 3306  # optional, default is 3306 for MARIADB/MYSQL
+        sql_query_pre           = SET NAMES utf8
+
+        sql_query_pre           = SELECT @max_doc_id := MAX(updated) FROM ttrss_entries
+        sql_query_pre           = UPDATE ttrss_sphinx_counters SET max_doc_id=@max_doc_id,lastrun_main=UTC_TIMESTAMP() WHERE counter_id=1
+        sql_query_pre           = SELECT @max_doc_id := max_doc_id FROM ttrss_sphinx_counters WHERE counter_id=1
+
+        sql_ranged_throttle         = 100
+        sql_query_range             = SELECT MIN(id),MAX(id) FROM ttrss_entries
+        sql_range_step              = 1000
+
+
+        sql_query               = \
+                SELECT int_id AS id, ref_id, UNIX_TIMESTAMP(updated) AS updated, \
+                        ttrss_entries.title AS title, link, content, \
+                        ttrss_feeds.title AS feed_title, ttrss_feeds.id AS feed_id, \
+                        marked, published, unread, \
+                        author, ttrss_user_entries.owner_uid \
+                        FROM ttrss_entries, ttrss_user_entries, ttrss_feeds \
+                        WHERE ref_id = ttrss_entries.id AND feed_id = ttrss_feeds.id \
+                        AND ttrss_entries.updated <= @max_doc_id \
+                        AND ttrss_entries.id>=$start AND ttrss_entries.id <=$end;
+
+
+
+        sql_attr_uint           = owner_uid
+        sql_attr_uint           = ref_id
+        sql_attr_uint		= feed_id
+
+#       sql_query_info          = \
+#               SELECT * FROM ttrss_entries,  \
+#                       ttrss_user_entries WHERE ref_id = id AND int_id=$id
+
+
+}
+
+source ttrss_delta : ttrss {
+        sql_query_range                 =
+        sql_query_pre                   =
+        sql_query_pre                   = SELECT @max_doc_id := MAX(updated) FROM ttrss_entries
+        sql_query_pre                   = UPDATE ttrss_sphinx_counters SET lastrun_delta=UTC_TIMESTAMP(),max_doc_id_delta=@max_doc_id WHERE counter_id=1
+        sql_query_pre                   = SELECT @max_doc_id := max_doc_id, @max_doc_id_delta := max_doc_id_delta FROM ttrss_sphinx_counters WHERE counter_id=1
+        sql_query               = \
+                SELECT int_id AS id, ref_id, UNIX_TIMESTAMP(updated) AS updated, \
+                        ttrss_entries.title AS title, link, content, \
+                        ttrss_feeds.title AS feed_title, ttrss_feeds.id AS feed_id, \
+                        marked, published, unread, \
+                        author, ttrss_user_entries.owner_uid \
+                        FROM ttrss_entries, ttrss_user_entries, ttrss_feeds \
+                        WHERE ref_id = ttrss_entries.id AND feed_id = ttrss_feeds.id \
+                        AND ttrss_entries.updated >= @max_doc_id AND ttrss_entries.updated <= @max_doc_id_delta;
+#                        AND ttrss_entries.updated > NOW() - INTERVAL 24 HOUR \
+
+        sql_query_killlist      = \
+                SELECT int_id FROM ttrss_entries, ttrss_user_entries \
+                        WHERE ref_id = ttrss_entries.id AND ttrss_entries.updated >= @max_doc_id AND ttrss_entries.updated <= @max_doc_id_delta;
+
+
+}
+
+index ttrss
+{
+        source                  = ttrss
+        path                    = /var/lib/sphinx/ttrss # Distribution Dependant, VALIDATE
+        docinfo                 = extern
+        mlock                   = 0
+        morphology              = none
+        min_word_len            = 1
+#       charset_type            = utf-8
+        min_prefix_len          = 3
+#       prefix_fields           = title, content, feed_title, author
+#       enable_star             = 1
+        html_strip              = 1
+        dict                    = keywords
+
+}
+
+index ttrss_delta : ttrss {
+        source                  = ttrss_delta
+        path                    = /var/lib/sphinx/ttrss_delta # Distribution Dependant, VALIDATE
+}
+
+
+

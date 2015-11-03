@@ -473,7 +473,7 @@
 
 			if ($search) {
 				foreach (PluginHost::getInstance()->get_hooks(PluginHost::HOOK_SEARCH) as $plugin) {
-					list($search_query_part, $search_words) = $plugin->hook_search($search);
+					list($search_query_part, $search_words) = $plugin->hook_search($search,$params);
 					break;
 				}
 
