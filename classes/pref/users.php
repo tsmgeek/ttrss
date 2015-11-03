@@ -379,7 +379,8 @@ class Pref_Users extends Handler_Protected {
 					login,access_level,email,
 					".SUBSTRING_FOR_DATE."(last_login,1,16) as last_login,
 					".SUBSTRING_FOR_DATE."(created,1,16) as created,
-					(SELECT COUNT(id) FROM ttrss_feeds WHERE owner_uid = tu.id) AS num_feeds
+					(SELECT COUNT(id) FROM ttrss_feeds WHERE owner_uid = tu.id) AS num_feeds,
+					(SELECT COUNT(int_id) FROM ttrss_user_entries WHERE owner_uid = tu.id) AS num_articles
 				FROM
 					ttrss_users tu
 				WHERE
@@ -397,6 +398,7 @@ class Pref_Users extends Handler_Protected {
 						<td width='20%'><a href=\"#\" onclick=\"updateUsersList('login')\">".__('Login')."</a></td>
 						<td width='20%'><a href=\"#\" onclick=\"updateUsersList('access_level')\">".__('Access Level')."</a></td>
 						<td width='10%'><a href=\"#\" onclick=\"updateUsersList('num_feeds')\">".__('Subscribed feeds')."</a></td>
+						<td width='10%'><a href=\"#\" onclick=\"updateUsersList('num_feeds')\">".__('Total Articles')."</a></td>
 						<td width='20%'><a href=\"#\" onclick=\"updateUsersList('created')\">".__('Registered')."</a></td>
 						<td width='20%'><a href=\"#\" onclick=\"updateUsersList('last_login')\">".__('Last login')."</a></td></tr>";
 
@@ -425,6 +427,7 @@ class Pref_Users extends Handler_Protected {
 
 				print "<td $onclick>" .	$access_level_names[$line["access_level"]] . "</td>";
 				print "<td $onclick>" . $line["num_feeds"] . "</td>";
+				print "<td $onclick>" . $line["num_articles"] . "</td>";
 				print "<td $onclick>" . $line["created"] . "</td>";
 				print "<td $onclick>" . $line["last_login"] . "</td>";
 
